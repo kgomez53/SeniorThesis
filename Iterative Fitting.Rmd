@@ -1,0 +1,204 @@
+---
+title: "reg2"
+output:
+  word_document: default
+  html_document: default
+---
+
+##Iterative fitting for 2009
+
+```{r}
+#Read in data for 2009
+thesis_data_09 <- read.csv("Indo Regression 2009.csv")
+
+thesis_09 <- subset(thesis_data_09,select = -c(X,Marker, province,Latitude,Longitude,
+                                               Megawati.Soekarno.Votes,Susilo.Bambang.Votes,
+                                               Muhammad.Jusuf.Votes))
+thesis_09 <- na.omit(thesis_09)
+```
+
+
+```{r}
+#Check Data for skew
+par(mfrow = c(2,3))
+for (i in 1:30){
+  boxplot(thesis_09[,i], main = colnames(thesis_09)[i])
+}
+
+#Here, I notice that the following should be transformed: Variables 1,2,6,7,8,9,10,15,18,20,23,24,29,30
+thesis_09[c(1,2,6,7,8,9,10,15,18,20,23,24,29,30,31),] <- log(thesis_09[c(1,2,6,7,8,9,10,15,18,20,23,24,29,30,31),])
+thesis_09 <- na.omit(thesis_09)
+
+#Check to see which may be the most predictive
+par(mfrow = c(2,3))
+for (i in 1:30){
+  plot(thesis_09[,i],thesis_09$Total.Votes, main = colnames(thesis_09)[i])
+}
+
+lm_1<- lm(thesis_09$Total.Votes ~ thesis_09$Number.of.Civil.Servants.per.Province)
+summary(lm_1)
+lm_2<- lm(thesis_09$Total.Votes ~  thesis_09$Number.of.Civil.Servants.per.Province + I(thesis_09$Number.of.Civil.Servants.per.Province^2))
+summary(lm_2) 
+lm_3 <- lm(thesis_09$Total.Votes~I(thesis_09$Number.of.Civil.Servants.per.Province^2))
+summary(lm_3)
+#I will keep lm_2 because it has a higher r-squared and a lower p-value and all terms significant.
+lm_current <- lm_2
+```
+
+```{r}
+#Plot against residuals
+par(mfrow = c(2,3))
+for (i in c(1:14,16:30)){
+  plot(thesis_09[,i],lm_current$residuals, main = colnames(thesis_09)[i])
+}
+
+#Which looks like it has a clear realtionship? ratio of fems
+lm_1<- lm(lm_current$residuals ~ I(thesis_09$Ratio.of.Female.Population^2))
+summary(lm_1) 
+lm_2<- lm(lm_current$residuals ~ thesis_09$Ratio.of.Female.Population + I(thesis_09$Ratio.of.Female.Population^2))
+summary(lm_2)
+
+#kepp lm_1
+lm_current <- lm_2
+```
+
+```{r}
+par(mfrow = c(2,3))
+for (i in c(1:14,16:21,23:30)){
+  plot(thesis_09[,i],lm_current$residuals, main = colnames(thesis_09)[i])
+}
+
+#Dead End
+summary(lm(thesis_09$Total.Votes ~  thesis_09$Number.of.Civil.Servants.per.Province + I(thesis_09$Number.of.Civil.Servants.per.Province^2)+thesis_09$Ratio.of.Female.Population+ I(thesis_09$Ratio.of.Female.Population^2)))
+```
+
+
+
+
+##Iterative Fitting for 2014
+```{r}
+#Read in 2014 Data
+thesis_data_14 <- read.csv("Indo Regression 2014.csv")
+
+thesis_14 <- subset(thesis_data_14,select = -c(X,Marker, province,Latitude,Longitude,
+                                               Prabowo.Subianto.Votes,Joko.Widodo.Votes))
+thesis_14 <- na.omit(thesis_14)
+
+#Check for transformations
+par(mfrow = c(2,3))
+for (i in 1:31){
+  boxplot(thesis_14[,i], main = colnames(thesis_14)[i])
+}
+
+#Here, I notice that the following should be transformed: Variables 1,2,7,8,9,10,15,18,20,23,24,25,29,30,31
+thesis_14[c(1,2,7,8,9,10,15,18,20,23,24,25,29,30,31),] <- log(thesis_14[c(1,2,7,8,9,10,15,18,20,23,24,25,29,30,31),])
+thesis_14 <- na.omit(thesis_14)
+```
+
+
+
+
+
+```{r}
+#Fit for 2014
+par(mfrow = c(2,3))
+for (i in 1:30){
+  plot(thesis_14[,i],thesis_14$Total.Votes, main = colnames(thesis_14)[i])
+}
+
+lm_1<- lm(thesis_14$Votes ~ thesis_14$Wetland.Area.By.Province..in.hectares.)
+summary(lm_1)
+lm_2<- lm(thesis_14$Votes ~ I(thesis_14$Wetland.Area.By.Province..in.hectares.^2))
+summary(lm_2) 
+lm_3<- lm(thesis_14$Votes ~ thesis_14$Wetland.Area.By.Province..in.hectares.+I(thesis_14$Wetland.Area.By.Province..in.hectares.^2))
+summary(lm_3) 
+#I will keep lm_2 because it has a higher r-squared and a lower p-value and all terms significant.
+lm_current <- lm_2
+```
+
+```{r}
+#Plot against residuals
+par(mfrow = c(2,3))
+for (i in c(1:29)){
+  plot(thesis_14[,i],lm_current$residuals, main = colnames(thesis_14)[i])
+}
+
+#Which looks like it has a clear realtionship? 
+lm_1<- lm(lm_current$residuals ~ thesis_14$Ratio.of..Poor.People.in.Rural.Areas)
+summary(lm_1)
+lm_2<- lm(lm_current$residuals ~ thesis_14$Ratio.of..Poor.People.in.Rural.Areas+I(thesis_14$Ratio.of..Poor.People.in.Rural.Areas^2))
+summary(lm_2)
+lm_3<- lm(lm_current$residuals ~ I(thesis_14$Ratio.of..Poor.People.in.Rural.Areas^2))
+summary(lm_3)
+
+lm_current <- lm_1
+```
+
+
+```{r}
+#Plot against residuals
+par(mfrow = c(2,3))
+for (i in c(1:20,22:29)){
+  plot(thesis_14[,i],lm_current$residuals, main = colnames(thesis_14)[i])
+}
+
+#Which looks like it has a clear realtionship? ratio of fems
+lm_1<- lm(lm_current$residuals ~ thesis_14$Number.of.Skilled.Workers.in.Construction)
+summary(lm_1)
+lm_2<- lm(lm_current$residuals ~ I(thesis_14$Number.of.Skilled.Workers.in.Construction^2))
+summary(lm_2)
+lm_3<- lm(lm_current$residuals ~ thesis_14$Number.of.Skilled.Workers.in.Construction +I(thesis_14$Number.of.Skilled.Workers.in.Construction^2))
+summary(lm_3)
+
+lm_current <- lm_3
+```
+
+```{r}
+#Plot against residuals
+par(mfrow = c(2,3))
+for (i in c(1:16,18:20,22:29)){
+  plot(thesis_14[,i],lm_current$residuals, main = colnames(thesis_14)[i])
+}
+
+lm_1<- lm(lm_current$residuals ~ thesis_14$Production.of.Paddy.By.Province..in.tons.)
+summary(lm_1)
+lm_2<- lm(lm_current$residuals ~ I(thesis_14$Production.of.Paddy.By.Province..in.tons.^2))
+summary(lm_2)
+lm_3<- lm(lm_current$residuals ~ thesis_14$Production.of.Paddy.By.Province..in.tons.+ I(thesis_14$Production.of.Paddy.By.Province..in.tons.^2))
+summary(lm_3)
+
+lm_current <- lm_3
+```
+
+```{r}
+par(mfrow = c(2,3))
+for (i in c(1:16,18:20,22,23,25:29)){
+  plot(thesis_14[,i],lm_current$residuals, main = colnames(thesis_14)[i])
+}
+colnames(thesis_14)
+lm_1<- lm(lm_current$residuals ~ thesis_14$Number.of.Villages)
+summary(lm_1)
+lm_2<- lm(lm_current$residuals ~ thesis_14$Number.of.Villages + I(thesis_14$Number.of.Villages^2))
+summary(lm_2)
+lm_3<- lm(lm_current$residuals ~ thesis_14$Number.of.Villages+ I(thesis_14$Number.of.Villages^2)+I(thesis_14$Number.of.Villages^3))
+summary(lm_3)
+
+#Dead End
+
+```
+
+
+```{r}
+summary(lm(thesis_14$Votes~ I(thesis_14$Wetland.Area.By.Province..in.hectares.^2)+ thesis_14$Ratio.of..Poor.People.in.Rural.Areas + thesis_14$Number.of.Skilled.Workers.in.Construction +I(thesis_14$Number.of.Skilled.Workers.in.Construction^2) +  thesis_14$Production.of.Paddy.By.Province..in.tons.+ I(thesis_14$Production.of.Paddy.By.Province..in.tons.^2)))
+
+#Take out least significant - wetland
+summary(lm(thesis_14$Votes~  thesis_14$Ratio.of..Poor.People.in.Rural.Areas + thesis_14$Number.of.Skilled.Workers.in.Construction +I(thesis_14$Number.of.Skilled.Workers.in.Construction^2) +  thesis_14$Production.of.Paddy.By.Province..in.tons.+ I(thesis_14$Production.of.Paddy.By.Province..in.tons.^2)))
+
+#Take out least significant - Poor People Ration
+summary(lm(thesis_14$Votes~  thesis_14$Number.of.Skilled.Workers.in.Construction +I(thesis_14$Number.of.Skilled.Workers.in.Construction^2) +  thesis_14$Production.of.Paddy.By.Province..in.tons.+ I(thesis_14$Production.of.Paddy.By.Province..in.tons.^2)))
+
+
+#Now, they are all keepers!
+
+```
+

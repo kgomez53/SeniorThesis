@@ -1,0 +1,180 @@
+---
+title: "Lasso Regression"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r}
+library(dplyr)
+library(glmnet)
+library(caret)
+library(plotmo)
+
+#Read in data
+thesis_data_09 <- read.csv("Indo Regression 2009.csv")
+
+thesis_09 <- subset(thesis_data_09,select = -c(X,Marker, province,Latitude,Longitude,
+                                               Megawati.Soekarno.Votes,Susilo.Bambang.Votes,
+                                               Muhammad.Jusuf.Votes))
+thesis_09 <- na.omit(thesis_09)
+
+#Read in data - TEST
+thesis_data_14 <- read.csv("Indo Regression 2014.csv")
+
+thesis_14 <- subset(thesis_data_14,select = -c(X,Marker, province,Latitude,Longitude,
+                       Prabowo.Subianto.Votes,Joko.Widodo.Votes))
+                      thesis_14 <- na.omit(thesis_14)
+```
+
+Clean data
+```{r}
+clean_09 <- thesis_09
+clean_09$Average.Price.per.Unit.of.Housing.Construction <- as.double(clean_09$Average.Price.per.Unit.of.Housing.Construction)
+clean_09$Harvested.Area.of.Soybeans..in.Hectares. <- as.double(clean_09$Harvested.Area.of.Soybeans..in.Hectares.)
+clean_09$Number.of.Civil.Servants.per.Province <- as.double(clean_09$Number.of.Civil.Servants.per.Province)
+clean_09$Number.of.Skilled.Workers.in.Construction <- as.double(clean_09$Number.of.Skilled.Workers.in.Construction)
+clean_09$Number.of.Villages <- as.double(clean_09$Number.of.Villages)
+clean_09$Production.of.Paddy.By.Province..in.tons. <- as.double(clean_09$Production.of.Paddy.By.Province..in.tons.)
+clean_09$Wetland.Area.By.Province..in.hectares. <- as.double(clean_09$Wetland.Area.By.Province..in.hectares.)
+clean_09$Total.Votes <- as.double(clean_09$Total.Votes)
+```
+
+
+##Lasso Regression on 2009 Data
+```{r}
+#Create test data
+set.seed(123)
+train <- clean_09$Total.Votes %>% createDataPartition(p=.8,list=FALSE)
+train.data <- clean_09[train,]
+test.data <- clean_09[-train,]
+
+train_pred <- model.matrix(Total.Votes~., train.data)[,-1]
+pred <- model.matrix(Total.Votes~., clean_09)[,-1]
+train_y<- train.data$Total.Votes
+
+lasso_09 <- glmnet(train_pred, train_y, alpha = 1, lambda = NULL)
+plot(lasso_09, "norm")
+plot(lasso_09, "lambda")
+
+#Perform CV
+cv.lasso.09 <- cv.glmnet(train_pred,train_y,alpha = 1)
+plot(cv.lasso.09)
+
+#Use min lambda value to predict test data
+lasso.fit.09 <- predict(lasso_09, type = "coefficients",s= cv.lasso.09$lambda.min, newx = x_test)
+#Test here?
+
+#Fit on full dataset
+lasso_full_09 <- glmnet(pred,clean_09$Total.Votes,alpha = 1) #use full dataset
+lasso.coeff.09 <- predict(lasso_full_09, type = "coefficients",s= cv.lasso.09$lambda.min, newx = x_test)
+plot_glmnet(lasso_full_09, label = TRUE)
+
+r2_09 <- cv.lasso.09$glmnet.fit$dev.ratio[which(cv.lasso.09$glmnet.fit$lambda == cv.lasso.09$lambda.min)]
+r2_09
+
+#Following code from: https://stats.stackexchange.com/questions/133873/lasso-plot-label-lines-with-names-using-glmnet 
+
+coef_values <-coef(lasso_full_09,cv.lasso.09$lambda.min)
+coef.increase<-dimnames(coef_values[coef_values[,1]>0,0])[[1]]
+coef.decrease<-dimnames(coef_values[coef_values[,1]<0,0])[[1]]
+
+#get ordered list of variables as they appear at smallest lambda
+allnames<-names(coef(lasso_full_09)[,
+    ncol(coef(lasso_full_09))][order(coef(lasso_full_09)[,
+    ncol(coef(lasso_full_09))],decreasing=TRUE)])
+
+#remove intercept
+allnames<-setdiff(allnames,allnames[grep("Intercept",allnames)])
+
+#assign colors
+cols<-rep("gray",length(allnames))
+cols[allnames %in% coef.increase]<-"green"      
+cols[allnames %in% coef.decrease]<-"red"        
+
+library(plotmo)
+plot_glmnet(lasso_full_09,label=20,s=cv.lasso.09$lambda.min,col=cols)
+
+```
+
+##LASSO on 2014 Data
+```{r}
+#Clean Data
+#2014 Data
+clean_14 <- thesis_14
+names(clean_14)[names(clean_14)=="Votes"] <- "Total.Votes"
+clean_14$Average.Price.per.Unit.of.Housing.Construction <- as.double(clean_14$Average.Price.per.Unit.of.Housing.Construction)
+clean_14$Harvested.Area.of.Soybeans..in.Hectares. <- as.double(clean_14$Harvested.Area.of.Soybeans..in.Hectares.)
+clean_14$Number.of.Civil.Servants.per.Province <- as.double(clean_14$Number.of.Civil.Servants.per.Province)
+clean_14$Number.of.Skilled.Workers.in.Construction <- as.double(clean_14$Number.of.Skilled.Workers.in.Construction)
+clean_14$Number.of.Villages <- as.double(clean_14$Number.of.Villages)
+clean_14$Production.of.Paddy.By.Province..in.tons. <- as.double(clean_14$Production.of.Paddy.By.Province..in.tons.)
+clean_14$Wetland.Area.By.Province..in.hectares. <- as.double(clean_14$Wetland.Area.By.Province..in.hectares.)
+clean_14$Total.Votes <- as.double(clean_14$Total.Votes)
+```
+
+
+```{r}
+#Create test data
+set.seed(123)
+train <- clean_14$Total.Votes %>% createDataPartition(p=.8,list=FALSE)
+train.data <- clean_14[train,]
+test.data <- clean_14[-train,]
+
+train_pred <- model.matrix(Total.Votes~., train.data)[,-1]
+pred <- model.matrix(Total.Votes~., clean_14)[,-1]
+train_y<- train.data$Total.Votes
+
+lasso_14 <- glmnet(train_pred, train_y, alpha = 1, lambda = NULL)
+
+
+#Perform CV
+cv.lasso.14 <- cv.glmnet(train_pred,train_y,alpha = 1)
+plot(cv.lasso.14)
+
+
+#Use min lambda value to predict test data
+lasso.fit.14 <- predict(lasso_14, type = "coefficients",s= cv.lasso.14$lambda.min, newx = x_test)
+
+#Fit on full dataset
+lasso_full_14 <- glmnet(pred,clean_14$Total.Votes,alpha = 1) #use full dataset
+lasso.coeff.14 <- predict(lasso_full_14, type = "coefficients",s= cv.lasso.14$lambda.min, newx = x_test)
+plot_glmnet(lasso_full_14, label = TRUE)
+
+r2_14 <- cv.lasso.14$glmnet.fit$dev.ratio[which(cv.lasso.14$glmnet.fit$lambda == cv.lasso.14$lambda.min)]
+r2_14
+
+
+#Following code from: https://stats.stackexchange.com/questions/133873/lasso-plot-label-lines-with-names-using-glmnet 
+
+coef_values <-coef(lasso_full_14,cv.lasso.14$lambda.min)
+coef.increase<-dimnames(coef_values[coef_values[,1]>0,0])[[1]]
+coef.decrease<-dimnames(coef_values[coef_values[,1]<0,0])[[1]]
+
+#get ordered list of variables as they appear at smallest lambda
+allnames<-names(coef(lasso_full_14)[,
+    ncol(coef(lasso_full_14))][order(coef(lasso_full_14)[,
+    ncol(coef(lasso_full_14))],decreasing=TRUE)])
+
+#remove intercept
+allnames<-setdiff(allnames,allnames[grep("Intercept",allnames)])
+
+#assign colors
+cols<-rep("gray",length(allnames))
+cols[allnames %in% coef.increase]<-"green"      
+cols[allnames %in% coef.decrease]<-"red"        
+
+library(plotmo)
+plot_glmnet(lasso_full_14,label=30,s=cv.lasso.14$lambda.min,col=cols)
+
+
+```
+
+
+Sources:
+Tutorial for LASSO Regression
+www.science.smith.edu/~jcrouser/SDS293/labs/lab10-r.html
+
+Calculating R^2 for the models
+http://stats.stackexchange.com/questions/266592/how-to-calculate-r2-for-lasso-glmnet 
+

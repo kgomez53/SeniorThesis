@@ -1,0 +1,255 @@
+---
+title: "Thesis - Map"
+output: html_document
+---
+
+```{r}
+library(leaflet)
+library(shiny)
+```
+
+```{r}
+#Tutorial used from: https://rstudio.github.io/leaflet/map_widget.html
+#Learned more about %>% from: https://www.rdocumentation.org/packages/magrittr/versions/1.5/topics/%25%3E%25
+#Shiny tutorial: https://www.datascience.com/blog/beginners-guide-to-shiny-and-leaflet-for-interactive-mapping
+#Data: https://www.bps.go.id/subject/5/konsumsi-dan-pengeluaran.html#subjekViewTab3 
+#Shiny Resource: http://shiny.rstudio.com/gallery/superzip-example.html
+#Dashboard: https://rstudio.github.io/shinydashboard/get_started.html 
+#https://shiny.rstudio.com/articles/datatables.html 
+
+library(raster)
+library(geojsonio)
+library(rgdal)
+library(rgeos)
+library(sp)
+library(RColorBrewer)
+
+
+indoProvidence <- geojsonio::geojson_read("IDN_adm1.json", what = "sp")
+
+
+destname <- "shape.zip"
+unzip(destname)
+filename <- list.files(pattern = ".shp", full.names = FALSE)
+filename <- gsub(".shp", "", filename)
+dat <- readOGR(".", filename)
+
+
+
+coordinates <- read.csv("Coord.csv")
+
+#Create the base map
+indo_base_map <- leaflet(options = leafletOptions(minZoom = 4.4)) %>%
+  addProviderTiles(providers$Esri.WorldGrayCanvas) %>%
+  addCircleMarkers(coordinates$longitude,coordinates$latitude, popup = coordinates$woe_label) %>%
+  setView(120,.7, 4.4) %>%
+  setMaxBounds(100, -1, 140, -5) 
+  
+indo_base_map  
+
+#TO DO:
+#Add JSON borders
+#Add buttons
+#Import Data
+#Find divisions for colors
+#Update markers
+#Side graphs?
+#Import data
+#Format - see the Shiny resource
+
+```
+```{r}
+#Create the new dataframes
+
+#2009
+ALOS <- read.csv("Average Length Of Stay Of Foreign Guests In Non Classified Hotel.csv")
+Indonesia_2009 <- as.data.frame(matrix(ALOS[,1][1:35]))
+colnames(Indonesia_2009) <- c("Province")
+
+tst <- read.csv("Number of Civil Servants.csv")
+
+#Add in each data set
+Indonesia_2009$ALOS <- read.csv("Average Length Of Stay Of Foreign Guests In Non Classified Hotel.csv")[,7][1:35]
+Indonesia_2009$APHC <- read.csv("Average Price per Unit of Housing Construction by Perumnas by Province, 2008 - 2018.csv")[,3][1:35]
+Indonesia_2009$ADCC <- read.csv("Average.Daily.Consumption.of.Calorie.per.Capita.csv")[,4][1:35]
+Indonesia_2009$GER_SD <- read.csv("GER_2009.csv")[,2][1:35]
+Indonesia_2009$GER_SMP <- read.csv("GER_2009.csv")[,3][1:35]
+Indonesia_2009$GER_SMA <- read.csv("GER_2009.csv")[,4][1:35]
+Indonesia_2009$HAS <- read.csv("Harvested Area of Soybeans.csv")[,18][1:35]
+Indonesia_2009$IR_Under15 <- read.csv("Illiteracy Rate by Age Group_2009.csv")[,2][1:35]
+Indonesia_2009$IR_15to44 <- read.csv("Illiteracy Rate by Age Group_2009.csv")[,3][1:35]
+Indonesia_2009$IR_Over45 <- read.csv("Illiteracy Rate by Age Group_2009.csv")[,4][1:35]
+Indonesia_2009$DI <- read.csv("Indeks.Demokrasi.Indonesia.Menurut.Provinsi.csv")[,2][1:35]
+Indonesia_2009$NER_SD <- read.csv("Net Enrollment Ratio_2009.csv")[,2][1:35]
+Indonesia_2009$NER_SMP <- read.csv("Net Enrollment Ratio_2009.csv")[,3][1:35]
+Indonesia_2009$NER_SMA <- read.csv("Net Enrollment Ratio_2009.csv")[,4][1:35]
+Indonesia_2009$CS <- read.csv("Number of Civil Servants.csv")[,2][1:35]
+Indonesia_2009$R_DPD_PP <- read.csv( "Number of Representatives of The Regional Representative Council (DPD) by Sex from the 2009 and 2014 General Electio.csv")[,8][1:35]
+Indonesia_2009$SWC <- read.csv("Number of Skilled Workers in Construction by Province and Qualifications (people), 2008-2018.csv")[,3][1:35]
+Indonesia_2009$Villages <- read.csv("Number of Villages by Province, 2004–2014.csv")[,7][1:35]
+Indonesia_2009$PFHW <- read.csv("Percentage of Households by Province Female of Household Headed who Worked.csv")[,2][1:35]
+Indonesia_2009$MWUC <- read.csv("Percentage of Married Women Aged 15-49 Using Contraception Method by Province.csv")[,11][1:35]
+Indonesia_2009$PPP <- read.csv("Poor People Rural Over Poor People Total.csv")[,4][1:35]
+Indonesia_2009$Gender <- read.csv("Population Percentage by Province and Gender, 2009-2018.csv")[,2][1:35]
+Indonesia_2009$PSI <- read.csv("Poverty Severity Index by Province, 2007 - 2019.csv")[,4][1:35]
+Indonesia_2009$Paddy_Prod <- read.csv("Production of Paddy by Province (ton).csv")[,18][1:35]
+Indonesia_2009$Maize_Prod <- read.csv("Productivity of Maize by Province.csv")[,18][1:35]
+Indonesia_2009$ROR <- read.csv("Room Occupancy Rate of Hotels and Other Accommodations by Province, 2000 - 2017.csv")[,11][1:35]
+Indonesia_2009$SPR_1315 <- read.csv("School Participation Rate ( S P R ) by Province, 2009.csv")[,2][1:35]
+Indonesia_2009$SPR_1618 <- read.csv("School Participation Rate ( S P R ) by Province, 2009.csv")[,3][1:35]
+Indonesia_2009$SPR_1924 <- read.csv("School Participation Rate ( S P R ) by Province, 2009.csv")[,4][1:35]
+Indonesia_2009$WAP <- read.csv("Wetland Area by Province (ha).csv")[,8][1:35]
+
+Indo_2009 <- data.frame(coordinates[,1],coordinates[,3:4],Indonesia_2009[,2:31][1:34,])
+
+#2014
+ALOS2 <- read.csv("Average Length Of Stay Of Foreign Guests In Non Classified Hotel.csv")
+Indonesia_2014 <- as.data.frame(matrix(ALOS2[,1][1:35]))
+colnames(Indonesia_2014) <- c("Province")
+
+#Add in each data set
+Indonesia_2014$ALOS <- read.csv("Average Length Of Stay Of Foreign Guests In Non Classified Hotel.csv")[,12][1:35]
+Indonesia_2014$APHC <- read.csv("Average Price per Unit of Housing Construction by Perumnas by Province, 2008 - 2018.csv")[,8][1:35]
+Indonesia_2014$ADCC <- read.csv("Average.Daily.Consumption.of.Calorie.per.Capita.csv")[,9][1:35]
+Indonesia_2014$GER_SD <- read.csv("GER_2014.csv")[,2][1:35]
+Indonesia_2014$GER_SMP <- read.csv("GER_2014.csv")[,3][1:35]
+Indonesia_2014$GER_SMA <- read.csv("GER_2014.csv")[,4][1:35]
+Indonesia_2014$HAS <- read.csv("Harvested Area of Soybeans.csv")[,23][1:35]
+Indonesia_2014$IR_Under15 <- read.csv("Illiteracy Rate by Age Group_2014.csv")[,2][1:35]
+Indonesia_2014$IR_15to44 <- read.csv("Illiteracy Rate by Age Group_2014.csv")[,3][1:35]
+Indonesia_2014$IR_Over45 <- read.csv("Illiteracy Rate by Age Group_2014.csv")[,4][1:35]
+Indonesia_2014$DI <- read.csv("Indeks.Demokrasi.Indonesia.Menurut.Provinsi.csv")[,7][1:35]
+Indonesia_2014$NER_SD <- read.csv("Net Enrollment Ratio_2014.csv")[,2][1:35]
+Indonesia_2014$NER_SMP <- read.csv("Net Enrollment Ratio_2014.csv")[,3][1:35]
+Indonesia_2014$NER_SMA <- read.csv("Net Enrollment Ratio_2014.csv")[,4][1:35]
+Indonesia_2014$CS <- read.csv("Number of Civil Servants.csv")[,3][1:35]
+Indonesia_2014$R_DPD_PP <- read.csv( "Number of Representatives of The Regional Representative Council (DPD) by Sex from the 2009 and 2014 General Electio.csv")[,9][1:35]
+Indonesia_2014$SWC <- read.csv("Number of Skilled Workers in Construction by Province and Qualifications (people), 2008-2018.csv")[,8][1:35]
+Indonesia_2014$Villages <- read.csv("Number of Villages by Province, 2004–2014.csv")[,12][1:35]
+Indonesia_2014$PFHW <- read.csv("Percentage of Households by Province Female of Household Headed who Worked.csv")[,7][1:35]
+Indonesia_2014$MWUC <- read.csv("Percentage of Married Women Aged 15-49 Using Contraception Method by Province.csv")[,16][1:35]
+Indonesia_2014$PPP <- read.csv("Poor People Rural Over Poor People Total.csv")[,9][1:35]
+Indonesia_2014$Gender <- read.csv("Population Percentage by Province and Gender, 2009-2018.csv")[,7][1:35]
+Indonesia_2014$PSI <- read.csv("Poverty Severity Index by Province, 2007 - 2019.csv")[,9][1:35]
+Indonesia_2014$Paddy_Prod <- read.csv("Production of Paddy by Province (ton).csv")[,23][1:35]
+Indonesia_2014$Maize_Prod <- read.csv("Productivity of Maize by Province.csv")[,23][1:35]
+Indonesia_2014$ROR <- read.csv("Room Occupancy Rate of Hotels and Other Accommodations by Province, 2000 - 2017.csv")[,16][1:35]
+Indonesia_2014$SPR_1315 <- read.csv("School Participation Rate ( S P R ) by Province, 2014.csv")[,2][1:35]
+Indonesia_2014$SPR_1618 <- read.csv("School Participation Rate ( S P R ) by Province, 2014.csv")[,3][1:35]
+Indonesia_2014$SPR_1924 <- read.csv("School Participation Rate ( S P R ) by Province, 2014.csv")[,4][1:35]
+Indonesia_2014$WAP <- read.csv("Wetland Area by Province (ha).csv")[,13][1:35]
+
+Indo_2014 <- data.frame(coordinates[,1],coordinates[,3:4],Indonesia_2014[,2:31][1:34,])
+#write.csv(Indo_2009,'C:\\Users\\Nicholas Gomez\\Documents\\THESIS\\Indo_2009.csv')
+
+Indo_2009$coordinates...1.
+
+Indo_2014[colnames(Indo_2014) == "ALOS"]
+
+#Create test dataset
+Indot2 <- Indonesia_2009[1:34,]
+IndoT <- data.frame(Indot2[,1:5], coordinates[,3:4])
+```
+
+
+```{r}
+#Variables and Data Sets
+k <- "CS"
+Indo_2014$k
+IndoData_2009 <- read.csv("Indo_2009.csv")
+IndoData_2014 <- read.csv("Indo_2014.csv")
+colnames(IndoData_2014)
+
+IndoData_2014[,5]
+IndoData_2014$latitude
+
+colnames(IndoData_2014)[5]
+
+
+```
+
+
+```{r}
+#Make a Bar graph of user Input by province
+IndoData_2014 <- read.csv("Indo_2014.csv")
+IndoData_2009 <- read.csv("Indo_2009.csv")
+barplot(IndoData_2014$ALOS,names.arg=IndoData_2014$province,ylab="ALOS",col="blue",
+main=paste("input$size","by Province"),border="red",las=2, cex.names = .7)
+
+IndoData_2014[,as.character("ALOS")]
+IndoData_2014$ALOS
+
+Indoshow14 <- IndoData_2014
+colnames(Indoshow14) <- c("Marker","Province","Latitude","Longitude",
+          "Average Length Of Stay Of Foreign Guests (in Days)", 
+          "Average Price per Unit of Housing Construction (in Rupiah)" , 
+          "Average Daily Consumption of Calorie per Capita",
+          "Gross Enrollment Ratio for Elementary Schools (SD) (in students per school)" ,
+          "Gross Enrollment Ratio for Middle Schools (SMP) (in students per school)" , 
+          "Gross Enrollment Ratio for High Schools (SMA) (in students per school)", 
+          "Harvested Area of Soybeans (in Hectares)", 
+          "Illiteracy Rate_Under15",
+          "Illiteracy Rate_15to44",
+          "Illiteracy Rate_Over45", 
+          "Democracy Index",
+          "Net Enrollment Ratio for Elementary Schools (SD) (as % of relevant population)",
+          "Net Enrollment Ratio for Middle Schools (SMP) (as % of relevant population)",
+          "Net Enrollment Ratio for High Schools (SMA) (as % of relevant population)",
+          "Number of Civil Servants per Province",
+          "Percent of Female Representatives of The Regional Representative Council",
+          "Number of Skilled Workers in Construction",
+          "Number of Villages",
+          "Percentage of Households With Female Household Head Who Worked",
+          "Percentage of Married Women Aged 15-49 Using Contraception Method",
+          "Percentage of Poor People in A Province That Live in Rural Areas",
+          "Percentage of Population That Is Female",
+          "Poverty Severity Index",
+          "Production of Paddy By Province (in tons)" , 
+          "Production of Maize By Province (in tons)" ,
+          "Room Occupancy Rate in Hotels",
+          "School Participation Rate For People Aged 13 to 15",
+          "School Participation Rate For People Aged 16 to 18",
+          "School Participation Rate For People Aged 19 to 24",
+          "Wetland Area By Province (in hectares)","Prabowo Subianto","Joko Widodo","Winner")
+
+Indoshow09 <- IndoData_2009
+colnames(Indoshow09) <- c("Marker","Province","Latitude","Longitude",
+          "Average Length Of Stay Of Foreign Guests (in Days)", 
+          "Average Price per Unit of Housing Construction (in Rupiah)" , 
+          "Average Daily Consumption of Calorie per Capita",
+          "Gross Enrollment Ratio for Elementary Schools (SD) (in students per school)" ,
+          "Gross Enrollment Ratio for Middle Schools (SMP) (in students per school)" , 
+          "Gross Enrollment Ratio for High Schools (SMA) (in students per school)", 
+          "Harvested Area of Soybeans (in Hectares)", 
+          "Illiteracy Rate_Under15",
+          "Illiteracy Rate_15to44",
+          "Illiteracy Rate_Over45", 
+          "Democracy Index",
+          "Net Enrollment Ratio for Elementary Schools (SD) (as % of relevant population)",
+          "Net Enrollment Ratio for Middle Schools (SMP) (as % of relevant population)",
+          "Net Enrollment Ratio for High Schools (SMA) (as % of relevant population)",
+          "Number of Civil Servants per Province",
+          "Percent of Female Representatives of The Regional Representative Council",
+          "Number of Skilled Workers in Construction",
+          "Number of Villages",
+          "Percentage of Households With Female Household Head Who Worked",
+          "Percentage of Married Women Aged 15-49 Using Contraception Method",
+          "Percentage of Poor People in A Province That Live in Rural Areas",
+          "Percentage of Population That Is Female",
+          "Poverty Severity Index",
+          "Production of Paddy By Province (in tons)" , 
+          "Production of Maize By Province (in tons)" ,
+          "Room Occupancy Rate in Hotels",
+          "School Participation Rate For People Aged 13 to 15",
+          "School Participation Rate For People Aged 16 to 18",
+          "School Participation Rate For People Aged 19 to 24",
+          "Wetland Area By Province (in hectares)","Megawati Soekarno","Susilo Bambang","Muhammad Jusuf", "Winner")
+
+write.csv(Indoshow09,'C:\\Users\\Nicholas Gomez\\Documents\\THESIS\\IndoShow_2009.csv')
+write.csv(Indoshow14,'C:\\Users\\Nicholas Gomez\\Documents\\THESIS\\IndoShow_2014.csv')
+```
+
+```{r}
+
+```
+
